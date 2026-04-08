@@ -1,0 +1,453 @@
+const STORAGE_KEY = 'pulafanatics_app_data_v2';
+
+let appData = {
+  members: [],
+  reservations: []
+};
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+}
+
+function loadData() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    appData = JSON.parse(saved);
+  }
+  renderAll();
+}
+
+function generateId() {
+  return `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+}
+
+function showMainTab(tab) {
+  const ledenSection = document.getElementById('ledenSection');
+  const adminSection = document.getElementById('adminSection');
+  const tabLeden = document.getElementById('tabLeden');
+  const tabAdmin = document.getElementById('tabAdmin');
+
+  if (tab === 'leden') {
+    ledenSection.classList.remove('hidden-block');
+    adminSection.classList.add('hidden-block');
+    tabLeden.classList.add('active-btn');
+    tabAdmin.classList.remove('active-btn');
+  } else {
+    ledenSection.classList.add('hidden-block');
+    adminSection.classList.remove('hidden-block');
+    tabLeden.classList.remove('active-btn');
+    tabAdmin.classList.add('active-btn');
+  }
+}
+
+function showAdminTab(tab) {
+  const beheer = document.getElementById('adminBeheer');
+  const ledenlijst = document.getElementById('adminLedenlijst');
+  const verplaatsingen = document.getElementById('adminVerplaatsingen');
+
+  const adminSub1 = document.getElementById('adminSub1');
+  const adminSub2 = document.getElementById('adminSub2');
+  const adminSub3 = document.getElementById('adminSub3');
+
+  beheer.classList.add('hidden-block');
+  ledenlijst.classList.add('hidden-block');
+  verplaatsingen.classList.add('hidden-block');
+
+  adminSub1.classList.remove('active-btn');
+  adminSub2.classList.remove('active-btn');
+  adminSub3.classList.remove('active-btn');
+
+  if (tab === 'beheer') {
+    beheer.classList.remove('hidden-block');
+    adminSub1.classList.add('active-btn');
+  }
+
+  if (tab === 'ledenlijst') {
+    ledenlijst.classList.remove('hidden-block');
+    adminSub2.classList.add('active-btn');
+  }
+
+  if (tab === 'verplaatsingen') {
+    verplaatsingen.classList.remove('hidden-block');
+    adminSub3.classList.add('active-btn');
+  }
+}
+
+function addMainMember(event) {
+  event.preventDefault();
+
+  const newMember = {
+    id: generateId(),
+    fullName: document.getElementById('fullName').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    street: document.getElementById('street').value.trim(),
+    city: document.getElementById('city').value.trim(),
+    memberNumber: document.getElementById('memberNumber').value.trim(),
+    family: []
+  };
+
+  appData.members.push(newMember);
+  saveData();
+  event.target.reset();
+  renderAll();
+  alert('Hoofdgebruiker geregistreerd.');
+}
+
+function addFamilyMember(event) {
+  event.preventDefault();
+
+  const ownerId = document.getElementById('familyOwner').value;
+  const owner = appData.members.find(member => member.id === ownerId);
+
+  if (!owner) {
+    alert('Kies eerst een hoofdgebruiker.');
+    return;
+  }
+
+  const familyName = document.getElementById('familyName').value.trim();
+  const familyType = document.getElementById('familyType').value;
+
+  owner.family.push({
+    id: generateId(),
+    name: familyName,
+    type: familyType
+  });
+
+  saveData();
+  event.target.reset();
+  renderAll();
+  alert('Gezinslid toegevoegd.');
+}
+
+function updatePersonChecklist() {
+  const ownerId = document.getElementById('reservationOwner').value;
+  const owner = appData.members.find(member => member.id === ownerId);
+  const checklist = document.getElementById('personChecklist');
+
+  if (!owner) {
+    checklist.innerHTML = 'Kies eerst een hoofdgebruiker.';
+    return;
+  }
+
+  let html = '<div class="checkbox-list">';
+  html += `
+    <label class="checkbox-item">
+      <input type="checkbox" value="main:${owner.id}" checked>
+      <span>${owner.fullName} (hoofdgebruiker)</span>
+    </label>
+  `;
+
+  owner.family.forEach(person => {
+    html += `
+      <label class="checkbox-item">
+        <input type="checkbox" value="family:${person.id}" checked>
+        <span>${person.name} (${person.type})</span>
+      </label>
+    `;
+  });
+
+  html += '</div>';
+  checklist.innerHTML = html;
+}
+
+function addReservation(event) {
+  event.preventDefault();
+
+  const ownerId = document.getElementById('reservationOwner').value;
+  const owner = appData.members.find(member => member.id === ownerId);
+  const tripDate = document.getElementById('tripDate').value;
+  const paymentStatus = document.getElementById('paymentStatus').value;
+
+  if (!owner) {
+    alert('Kies eerst een hoofdgebruiker.');
+    return;
+  }
+
+  if (!tripDate) {
+    alert('Kies een datum van verplaatsing.');
+    return;
+  }
+
+  const selectedPersons = Array.from(document.querySelectorAll('#personChecklist input[type="checkbox"]:checked'));
+
+  if (selectedPersons.length === 0) {
+    alert('Selecteer minstens 1 persoon.');
+    return;
+  }
+
+  const persons = selectedPersons.map(input => {
+    const [type, personId] = input.value.split(':');
+
+    if (type === 'main') {
+      return owner.fullName;
+    }
+
+    const familyPerson = owner.family.find(member => member.id === personId);
+    return familyPerson ? familyPerson.name : 'Onbekend';
+  });
+
+  const reservation = {
+    id: generateId(),
+    ownerId,
+    ownerName: owner.fullName,
+    tripDate,
+    persons,
+    paymentStatus,
+    createdAt: new Date().toISOString()
+  };
+
+  appData.reservations.push(reservation);
+  saveData();
+  event.target.reset();
+  document.getElementById('personChecklist').innerHTML = 'Kies eerst een hoofdgebruiker.';
+  renderAll();
+  alert('Reservering opgeslagen.');
+}
+
+function deleteMember(memberId) {
+  const confirmed = confirm('Wil je dit lid en alle gekoppelde reservaties verwijderen?');
+  if (!confirmed) return;
+
+  appData.members = appData.members.filter(member => member.id !== memberId);
+  appData.reservations = appData.reservations.filter(reservation => reservation.ownerId !== memberId);
+  saveData();
+  renderAll();
+}
+
+function deleteReservation(reservationId) {
+  const confirmed = confirm('Wil je deze reservering verwijderen?');
+  if (!confirmed) return;
+
+  appData.reservations = appData.reservations.filter(reservation => reservation.id !== reservationId);
+  saveData();
+  renderAll();
+}
+
+function renderOwnerSelects() {
+  const familyOwner = document.getElementById('familyOwner');
+  const reservationOwner = document.getElementById('reservationOwner');
+
+  const baseOption = '<option value="">-- kies --</option>';
+  familyOwner.innerHTML = baseOption;
+  reservationOwner.innerHTML = baseOption;
+
+  appData.members.forEach(member => {
+    familyOwner.innerHTML += `<option value="${member.id}">${member.fullName}</option>`;
+    reservationOwner.innerHTML += `<option value="${member.id}">${member.fullName}</option>`;
+  });
+}
+
+function renderMemberOverview() {
+  const container = document.getElementById('memberOverview');
+  const count = document.getElementById('memberCount');
+
+  count.textContent = `${appData.members.length} leden`;
+
+  if (appData.members.length === 0) {
+    container.innerHTML = '<p class="small-text">Nog geen leden geregistreerd.</p>';
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Naam</th>
+          <th>Contact</th>
+          <th>Adres</th>
+          <th>Gezinsleden</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  appData.members.forEach(member => {
+    const familyText = member.family.length
+      ? member.family.map(person => `${person.name} (${person.type})`).join('<br>')
+      : '<span class="small-text">Geen</span>';
+
+    html += `
+      <tr>
+        <td>
+          ${member.fullName}<br>
+          <span class="small-text">Lidnr: ${member.memberNumber || '-'}</span>
+        </td>
+        <td>${member.email}<br>${member.phone}</td>
+        <td>${member.street}<br>${member.city}</td>
+        <td>${familyText}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderAdminManagement() {
+  const container = document.getElementById('adminMemberManagement');
+
+  if (appData.members.length === 0) {
+    container.innerHTML = '<p class="small-text">Nog geen leden om te beheren.</p>';
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Naam</th>
+          <th>E-mail</th>
+          <th>Telefoon</th>
+          <th>Gezinsleden</th>
+          <th>Actie</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  appData.members.forEach(member => {
+    const familyText = member.family.length
+      ? member.family.map(person => `${person.name} (${person.type})`).join('<br>')
+      : '-';
+
+    html += `
+      <tr>
+        <td>${member.fullName}</td>
+        <td>${member.email}</td>
+        <td>${member.phone}</td>
+        <td>${familyText}</td>
+        <td><button class="btn btn-danger" onclick="deleteMember('${member.id}')">Verwijderen</button></td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderAdminMemberList() {
+  const container = document.getElementById('adminMemberList');
+
+  if (appData.members.length === 0) {
+    container.innerHTML = '<p class="small-text">Nog geen ledenlijst beschikbaar.</p>';
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Naam</th>
+          <th>Lidnummer</th>
+          <th>E-mail</th>
+          <th>Telefoon</th>
+          <th>Adres</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  appData.members.forEach(member => {
+    html += `
+      <tr>
+        <td>${member.fullName}</td>
+        <td>${member.memberNumber || '-'}</td>
+        <td>${member.email}</td>
+        <td>${member.phone}</td>
+        <td>${member.street}, ${member.city}</td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function renderTripDateFilter() {
+  const select = document.getElementById('adminTripDateFilter');
+  const uniqueDates = [...new Set(appData.reservations.map(reservation => reservation.tripDate))].sort();
+
+  if (uniqueDates.length === 0) {
+    select.innerHTML = '<option value="">Geen datums beschikbaar</option>';
+    renderTripReservations();
+    return;
+  }
+
+  const currentValue = select.value;
+  select.innerHTML = '';
+
+  uniqueDates.forEach(date => {
+    select.innerHTML += `<option value="${date}">${date}</option>`;
+  });
+
+  if (uniqueDates.includes(currentValue)) {
+    select.value = currentValue;
+  }
+
+  renderTripReservations();
+}
+
+function renderTripReservations() {
+  const container = document.getElementById('tripReservationsTable');
+  const selectedDate = document.getElementById('adminTripDateFilter').value;
+
+  if (!selectedDate) {
+    container.innerHTML = '<p class="small-text">Nog geen verplaatsingen beschikbaar.</p>';
+    return;
+  }
+
+  const reservations = appData.reservations.filter(reservation => reservation.tripDate === selectedDate);
+
+  if (reservations.length === 0) {
+    container.innerHTML = '<p class="small-text">Geen inschrijvingen voor deze datum.</p>';
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>Hoofdgebruiker</th>
+          <th>Ingeschreven personen</th>
+          <th>Betaalstatus</th>
+          <th>Actie</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  reservations.forEach(reservation => {
+    html += `
+      <tr>
+        <td>${reservation.ownerName}</td>
+        <td>${reservation.persons.join('<br>')}</td>
+        <td>${reservation.paymentStatus}</td>
+        <td><button class="btn btn-danger" onclick="deleteReservation('${reservation.id}')">Verwijderen</button></td>
+      </tr>
+    `;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function simulatePaymentRequest() {
+  const output = document.getElementById('paymentDemoResult');
+  output.textContent = 'Demo: hier kan later een echte Bancontact-betaallink of QR-koppeling komen via een betaalprovider zoals Mollie of Stripe.';
+}
+
+function renderAll() {
+  renderOwnerSelects();
+  renderMemberOverview();
+  renderAdminManagement();
+  renderAdminMemberList();
+  renderTripDateFilter();
+}
+
+document.getElementById('mainMemberForm').addEventListener('submit', addMainMember);
+document.getElementById('familyForm').addEventListener('submit', addFamilyMember);
+document.getElementById('reservationForm').addEventListener('submit', addReservation);
+document.getElementById('reservationOwner').addEventListener('change', updatePersonChecklist);
+
+loadData();
