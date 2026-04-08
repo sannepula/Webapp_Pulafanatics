@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulafanatics WebApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <div>
+        <p class="eyebrow">Supportersclub Pulafanatics</p>
+        <h1>Pulafanatics WebApp</h1>
+        <p class="subtitle">Ledenbeheer, gezinsregistratie en reservaties voor busverplaatsingen</p>
+      </div>
+      <div class="brand-badge">PULA</div>
+    </div>
+  </header>
+
+  <main class="container main-layout">
+    <section class="hero-card">
+      <div>
+        <p class="eyebrow">Starterversie in Pulafanatics-stijl</p>
+        <h2>Beheer leden en verplaatsingen op één plek</h2>
+        <p>
+          Deze versie werkt volledig in de browser en bewaart gegevens lokaal via localStorage.
+          Ideaal als eerste online demo via GitHub Pages.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <button id="tabLeden" class="btn btn-primary active-btn" onclick="showMainTab('leden')">Ledenluik</button>
+        <button id="tabAdmin" class="btn btn-secondary" onclick="showMainTab('admin')">Adminluik</button>
+      </div>
+    </section>
+
+    <section id="ledenSection">
+      <div class="cards-grid two">
+        <article class="panel-card">
+          <div class="panel-title">
+            <h3>Hoofdgebruiker registreren</h3>
+            <span class="tag">Lid</span>
+          </div>
+
+          <form id="mainMemberForm">
+            <label for="fullName">Volledige naam</label>
+            <input type="text" id="fullName" required />
+
+            <div class="form-grid">
+              <div>
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required />
+              </div>
+              <div>
+                <label for="phone">Telefoon</label>
+                <input type="text" id="phone" required />
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div>
+                <label for="street">Straat + nummer</label>
+                <input type="text" id="street" required />
+              </div>
+              <div>
+                <label for="city">Postcode + gemeente</label>
+                <input type="text" id="city" required />
+              </div>
+            </div>
+
+            <label for="memberNumber">Lidnummer (optioneel)</label>
+            <input type="text" id="memberNumber" />
+
+            <button type="submit" class="btn btn-primary full-width">Registreren</button>
+          </form>
+        </article>
+
+        <article class="panel-card">
+          <div class="panel-title">
+            <h3>Gezinsleden toevoegen</h3>
+            <span class="tag">Gezin</span>
+          </div>
+
+          <form id="familyForm">
+            <label for="familyOwner">Kies hoofdgebruiker</label>
+            <select id="familyOwner"></select>
+
+            <label for="familyName">Naam gezinslid</label>
+            <input type="text" id="familyName" required />
+
+            <label for="familyType">Type</label>
+            <select id="familyType">
+              <option value="Partner">Partner</option>
+              <option value="Kind">Kind</option>
+              <option value="Gezinslid">Gezinslid</option>
+            </select>
+
+            <button type="submit" class="btn btn-secondary full-width">Gezinslid opslaan</button>
+          </form>
+        </article>
+      </div>
+
+      <div class="cards-grid two">
+        <article class="panel-card">
+          <div class="panel-title">
+            <h3>Reservering maken</h3>
+            <span class="tag">Verplaatsing</span>
+          </div>
+
+          <form id="reservationForm">
+            <label for="reservationOwner">Kies hoofdgebruiker</label>
+            <select id="reservationOwner"></select>
+
+            <label for="tripDate">Datum van verplaatsing</label>
+            <input type="date" id="tripDate" required />
+
+            <label>Selecteer personen</label>
+            <div id="personChecklist" class="checklist-box muted-box">Kies eerst een hoofdgebruiker.</div>
+
+            <label for="paymentStatus">Betaalstatus</label>
+            <select id="paymentStatus">
+              <option value="Niet betaald">Niet betaald</option>
+              <option value="Aangevraagd">Betaallink aangevraagd</option>
+              <option value="Betaald">Betaald</option>
+            </select>
+
+            <button type="submit" class="btn btn-primary full-width">Reservering opslaan</button>
+          </form>
+        </article>
+
+        <article class="panel-card accent-card">
+          <div class="panel-title">
+            <h3>Bancontact / Pay App</h3>
+            <span class="tag dark">Demo</span>
+          </div>
+
+          <p>
+            Dit blok is voorzien als plaats voor een latere echte betaalintegratie.
+            In deze versie kan je al werken met betaalstatus en een demo-betaallink simuleren.
+          </p>
+
+          <button class="btn btn-dark full-width" onclick="simulatePaymentRequest()">Vraag demo-betaallink aan</button>
+          <p id="paymentDemoResult" class="helper-text"></p>
+        </article>
+      </div>
+
+      <article class="panel-card table-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Overzicht</p>
+            <h3>Geregistreerde leden</h3>
+          </div>
+          <span class="count-badge" id="memberCount">0 leden</span>
+        </div>
+        <div id="memberOverview"></div>
+      </article>
+    </section>
+
+    <section id="adminSection" class="hidden-block">
+      <div class="subtabs">
+        <button id="adminSub1" class="btn btn-primary active-btn" onclick="showAdminTab('beheer')">Beheer leden</button>
+        <button id="adminSub2" class="btn btn-secondary" onclick="showAdminTab('ledenlijst')">Ledenlijst</button>
+        <button id="adminSub3" class="btn btn-secondary" onclick="showAdminTab('verplaatsingen')">Verplaatsingen per datum</button>
+      </div>
+
+      <article id="adminBeheer" class="panel-card table-card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h3>Beheer van de leden</h3>
+          </div>
+          <button class="btn btn-print" onclick="window.print()">Afdrukken</button>
+        </div>
+        <div id="adminMemberManagement"></div>
+      </article>
+
+      <article id="adminLedenlijst" class="panel-card table-card hidden-block">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h3>Ledenlijst bekijken en afdrukken</h3>
+          </div>
+          <button class="btn btn-print" onclick="window.print()">Lijst afdrukken</button>
+        </div>
+        <div id="adminMemberList"></div>
+      </article>
+
+      <article id="adminVerplaatsingen" class="panel-card table-card hidden-block">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Admin</p>
+            <h3>Inschrijvingen per datum</h3>
+          </div>
+          <button class="btn btn-print" onclick="window.print()">Lijst afdrukken</button>
+        </div>
+
+        <label for="adminTripDateFilter">Kies datum van verplaatsing</label>
+        <select id="adminTripDateFilter" onchange="renderTripReservations()"></select>
+
+        <div id="tripReservationsTable" class="table-wrap"></div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>Pulafanatics webapp demo</span>
+      <span>GitHub Pages ready</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
